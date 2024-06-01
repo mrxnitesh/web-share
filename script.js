@@ -152,6 +152,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Create a modal or dialog box for sharing
         const modal = document.createElement('div');
         modal.classList.add('modal');
+        modal.id = 'modal';
 
         const modalContent = document.createElement('div');
         modalContent.classList.add('modal-content');
