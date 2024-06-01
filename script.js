@@ -41,16 +41,17 @@ document.getElementById('sendButton').addEventListener('click', () => {
         document.getElementById('fileUrl').value = fileUrl;
         document.getElementById('fileLink').style.display = 'block';
 
-        const conn = peer.connect(fileUrl.split('?file=')[1]);
-        conn.on('open', () => {
-            conn.send({
-                fileName: file.name,
-                fileSize: file.size,
-                totalChunks: chunks.length
-            });
+        peer.on('connection', (conn) => {
+            conn.on('open', () => {
+                conn.send({
+                    fileName: file.name,
+                    fileSize: file.size,
+                    totalChunks: chunks.length
+                });
 
-            chunks.forEach((chunk, index) => {
-                conn.send({ index, chunk });
+                chunks.forEach((chunk, index) => {
+                    conn.send({ index, chunk });
+                });
             });
         });
     };
@@ -78,7 +79,7 @@ document.getElementById('receiveButton').addEventListener('click', () => {
         } else {
             receivedChunks[data.index] = data.chunk;
 
-            if (receivedChunks.length === totalChunks) {
+            if (receivedChunks.filter(Boolean).length === totalChunks) {
                 const blob = new Blob(receivedChunks, { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -92,15 +93,5 @@ document.getElementById('receiveButton').addEventListener('click', () => {
 
     conn.on('error', (error) => {
         console.error('Connection error:', error);
-    });
-});
-
-peer.on('connection', (conn) => {
-    conn.on('data', (data) => {
-        if (data.fileName) {
-            console.log('Receiving metadata:', data);
-        } else {
-            console.log('Receiving chunk', data.index);
-        }
     });
 });
