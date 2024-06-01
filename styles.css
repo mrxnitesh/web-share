@@ -35,14 +35,29 @@ button {
     font-size: 16px;
     cursor: pointer;
     transition: background-color 0.3s, box-shadow 0.3s;
-    margin: 0 10px;
+    margin: 10px 10px;
     border-radius: 5px;
+    width: 200px;
 }
 
 button:hover {
     background-color: #01579B; /* Dark Blue */
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
+
+#copyLinkButton{
+    margin-right: auto;
+}
+#shareLinkButton{
+    margin-left: auto;
+}
+
+
+#fileUrl{
+    width: 400px;
+}
+
+
 
 input[type="file"],
 input[type="text"] {
