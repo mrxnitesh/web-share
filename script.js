@@ -1,75 +1,109 @@
-let peer;
+// Initialize PeerJS instance
+const peer = new Peer();
 
-function startFileTransfer() {
+// Event listener for PeerJS connection open
+peer.on('open', (peerId) => {
+    console.log('My peer ID is: ' + peerId);
+});
+
+// Event listener for PeerJS errors
+peer.on('error', (error) => {
+    console.error('PeerJS error:', error);
+});
+
+// Function to generate file download link
+function generateFileLink(blob) {
+    const url = URL.createObjectURL(blob);
+    document.getElementById('fileUrl').value = url;
+    document.getElementById('fileLink').style.display = 'block';
+}
+
+// Event listener for sending file
+document.getElementById('sendButton').addEventListener('click', () => {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
-    const statusDiv = document.getElementById('status');
-
-    if (file) {
-        statusDiv.textContent = 'Waiting for connection...';
-
-        peer = new SimplePeer({ initiator: true, trickle: false });
-
-        peer.on('signal', data => {
-            statusDiv.textContent = 'Waiting for receiver to connect...';
-            const connectionId = JSON.stringify(data);
-            prompt('Share this connection ID with the receiver:', connectionId);
-        });
-
-        peer.on('connect', () => {
-            statusDiv.textContent = 'Connection established. Sending file...';
-            peer.send(file);
-        });
-
-        peer.on('error', err => {
-            console.error('Error:', err);
-            statusDiv.textContent = 'An error occurred during the file transfer';
-        });
-    } else {
-        alert('Please select a file.');
+    if (!file) {
+        alert('Please select a file to send.');
+        return;
     }
-}
 
-function connectToPeer() {
-    const connectionInput = document.getElementById('connectionInput');
-    const statusDiv = document.getElementById('status');
-    const connectionId = connectionInput.value;
+    // Generate a random peer ID
+    const peerId = Math.random().toString(36).substring(2);
 
-    if (connectionId) {
-        statusDiv.textContent = 'Connecting...';
+    // Create a PeerJS instance with the generated peer ID
+    const peer = new Peer(peerId);
 
-        peer = new SimplePeer({ trickle: false });
+    // Event listener for when PeerJS connection is open
+    peer.on('open', () => {
+        // Connect to recipient
+        const conn = peer.connect('receiver');
 
-        peer.on('signal', data => {
-            console.log('Signal:', data);
+        // Event listener for when data connection is open
+        conn.on('open', () => {
+            // Send file metadata
+            conn.send({ fileName: file.name, fileSize: file.size });
+
+            // Create a file reader
+            const reader = new FileReader();
+
+            // Event listener for when the file is read
+            reader.onload = (event) => {
+                // Send the file data
+                conn.send(event.target.result);
+            };
+
+            // Read the file as a data URL
+            reader.readAsDataURL(file);
         });
 
-        peer.on('connect', () => {
-            statusDiv.textContent = 'Connection established. Waiting for file...';
+        // Event listener for when data is received
+        conn.on('data', (data) => {
+            // Handle received data (not implemented in this example)
         });
+    });
 
-        peer.on('data', data => {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([data]));
-            a.download = 'received_file';
-            a.textContent = 'Download file';
-            document.getElementById('downloadLink').appendChild(a);
-            statusDiv.textContent = 'File received successfully!';
+    // Event listener for PeerJS errors
+    peer.on('error', (error) => {
+        console.error('PeerJS error:', error);
+    });
+
+    // Generate file download link
+    generateFileLink(file);
+});
+
+// Event listener for receiving file
+document.getElementById('receiveButton').addEventListener('click', () => {
+    const senderPeerId = document.getElementById('senderPeerId').value;
+    
+    // Connect to sender
+    const conn = peer.connect(senderPeerId);
+
+    // Event listener for when data connection is open
+    conn.on('open', () => {
+        // Event listener for when data is received
+        conn.on('data', (data) => {
+            if (typeof data === 'object') {
+                // Metadata received
+                const fileSize = data.fileSize;
+                const chunks = [];
+                let receivedSize = 0;
+
+                // Event listener for when file data is received
+                conn.on('data', (chunk) => {
+                    chunks.push(chunk);
+                    receivedSize += chunk.length;
+                    if (receivedSize === fileSize) {
+                        // All chunks received, reconstruct file
+                        const blob = new Blob(chunks);
+                        generateFileLink(blob);
+                    }
+                });
+            }
         });
+    });
 
-        peer.on('error', err => {
-            console.error('Error:', err);
-            statusDiv.textContent = 'An error occurred during the file transfer';
-        });
-
-        try {
-            peer.signal(JSON.parse(connectionId));
-        } catch (err) {
-            console.error('Error parsing connection ID:', err);
-            alert('Invalid connection ID format. Please check and try again.');
-            statusDiv.textContent = 'Invalid connection ID';
-        }
-    } else {
-        alert('Please enter a connection ID.');
-    }
-}
+    // Event listener for PeerJS errors
+    peer.on('error', (error) => {
+        console.error('PeerJS error:', error);
+    });
+});

@@ -3,14 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P File Transfer</title>
+    <title>Peer-to-Peer File Transfer</title>
 </head>
 <body>
-    <h1>Welcome to P2P File Transfer</h1>
-    <p>Choose your role:</p>
-    <ul>
-        <li><a href="send.html">Send File</a></li>
-        <li><a href="receive.html">Receive File</a></li>
-    </ul>
+    <h1>Peer-to-Peer File Transfer</h1>
+    
+    <!-- Sender interface -->
+    <div id="senderInterface">
+        <h2>Send File</h2>
+        <input type="file" id="fileInput">
+        <button id="sendButton">Send File</button>
+        <div id="fileLink" style="display:none;">
+            <p>Share this link with the recipient:</p>
+            <textarea id="fileUrl" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- Receiver interface -->
+    <div id="receiverInterface" style="display:none;">
+        <h2>Receive File</h2>
+        <label for="senderPeerId">Sender's Peer ID:</label>
+        <input type="text" id="senderPeerId">
+        <button id="receiveButton">Receive File</button>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
