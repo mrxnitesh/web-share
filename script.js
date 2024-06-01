@@ -1,24 +1,24 @@
-// Initialize PeerJS instance
-const peer = new Peer();
-
-// Event listener for PeerJS connection open
-peer.on('open', (peerId) => {
-    console.log('My peer ID is: ' + peerId);
+document.getElementById('sendOption').addEventListener('click', () => {
+    document.getElementById('options').style.display = 'none';
+    document.getElementById('sendFileContainer').style.display = 'block';
 });
 
-// Event listener for PeerJS errors
+document.getElementById('receiveOption').addEventListener('click', () => {
+    document.getElementById('options').style.display = 'none';
+    document.getElementById('receiveFileContainer').style.display = 'block';
+});
+
+const peer = new Peer();
+
+peer.on('open', (peerId) => {
+    console.log('My peer ID is: ' + peerId);
+    document.getElementById('fileUrl').value = `${window.location.href}?file=${peerId}`;
+});
+
 peer.on('error', (error) => {
     console.error('PeerJS error:', error);
 });
 
-// Function to generate file download link
-function generateFileLink(blob) {
-    const url = URL.createObjectURL(blob);
-    document.getElementById('fileUrl').value = url;
-    document.getElementById('fileLink').style.display = 'block';
-}
-
-// Event listener for sending file
 document.getElementById('sendButton').addEventListener('click', () => {
     const fileInput = document.getElementById('fileInput');
     const file = fileInput.files[0];
@@ -27,83 +27,80 @@ document.getElementById('sendButton').addEventListener('click', () => {
         return;
     }
 
-    // Generate a random peer ID
-    const peerId = Math.random().toString(36).substring(2);
+    const fileReader = new FileReader();
+    fileReader.readAsArrayBuffer(file);
+    fileReader.onload = (event) => {
+        const arrayBuffer = event.target.result;
+        const chunkSize = 16 * 1024; // 16 KB
+        const chunks = [];
+        for (let i = 0; i < arrayBuffer.byteLength; i += chunkSize) {
+            chunks.push(arrayBuffer.slice(i, i + chunkSize));
+        }
 
-    // Create a PeerJS instance with the generated peer ID
-    const peer = new Peer(peerId);
+        const fileUrl = `${window.location.href}?file=${peer.id}`;
+        document.getElementById('fileUrl').value = fileUrl;
+        document.getElementById('fileLink').style.display = 'block';
 
-    // Event listener for when PeerJS connection is open
-    peer.on('open', () => {
-        // Connect to recipient
-        const conn = peer.connect('receiver');
-
-        // Event listener for when data connection is open
+        const conn = peer.connect(fileUrl.split('?file=')[1]);
         conn.on('open', () => {
-            // Send file metadata
-            conn.send({ fileName: file.name, fileSize: file.size });
+            conn.send({
+                fileName: file.name,
+                fileSize: file.size,
+                totalChunks: chunks.length
+            });
 
-            // Create a file reader
-            const reader = new FileReader();
-
-            // Event listener for when the file is read
-            reader.onload = (event) => {
-                // Send the file data
-                conn.send(event.target.result);
-            };
-
-            // Read the file as a data URL
-            reader.readAsDataURL(file);
+            chunks.forEach((chunk, index) => {
+                conn.send({ index, chunk });
+            });
         });
-
-        // Event listener for when data is received
-        conn.on('data', (data) => {
-            // Handle received data (not implemented in this example)
-        });
-    });
-
-    // Event listener for PeerJS errors
-    peer.on('error', (error) => {
-        console.error('PeerJS error:', error);
-    });
-
-    // Generate file download link
-    generateFileLink(file);
+    };
 });
 
-// Event listener for receiving file
 document.getElementById('receiveButton').addEventListener('click', () => {
-    const senderPeerId = document.getElementById('senderPeerId').value;
-    
-    // Connect to sender
+    const fileLinkInput = document.getElementById('fileLinkInput').value;
+    const urlParams = new URLSearchParams(fileLinkInput.split('?')[1]);
+    const senderPeerId = urlParams.get('file');
+
     const conn = peer.connect(senderPeerId);
 
-    // Event listener for when data connection is open
-    conn.on('open', () => {
-        // Event listener for when data is received
-        conn.on('data', (data) => {
-            if (typeof data === 'object') {
-                // Metadata received
-                const fileSize = data.fileSize;
-                const chunks = [];
-                let receivedSize = 0;
+    let receivedChunks = [];
+    let totalChunks = 0;
+    let fileName = '';
 
-                // Event listener for when file data is received
-                conn.on('data', (chunk) => {
-                    chunks.push(chunk);
-                    receivedSize += chunk.length;
-                    if (receivedSize === fileSize) {
-                        // All chunks received, reconstruct file
-                        const blob = new Blob(chunks);
-                        generateFileLink(blob);
-                    }
-                });
-            }
-        });
+    conn.on('open', () => {
+        console.log('Connected to sender:', senderPeerId);
     });
 
-    // Event listener for PeerJS errors
-    peer.on('error', (error) => {
-        console.error('PeerJS error:', error);
+    conn.on('data', (data) => {
+        if (data.fileName) {
+            fileName = data.fileName;
+            totalChunks = data.totalChunks;
+        } else {
+            receivedChunks[data.index] = data.chunk;
+
+            if (receivedChunks.length === totalChunks) {
+                const blob = new Blob(receivedChunks, { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        }
+    });
+
+    conn.on('error', (error) => {
+        console.error('Connection error:', error);
+    });
+});
+
+peer.on('connection', (conn) => {
+    conn.on('data', (data) => {
+        if (data.fileName) {
+            console.log('Receiving metadata:', data);
+        } else {
+            console.log('Receiving chunk', data.index);
+        }
     });
 });

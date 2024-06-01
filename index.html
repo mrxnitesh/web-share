@@ -4,30 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Peer-to-Peer File Transfer</title>
+    <style>
+        #sendFileContainer, #fileLink, #receiveFileContainer {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <h1>Peer-to-Peer File Transfer</h1>
-    
-    <!-- Sender interface -->
-    <div id="senderInterface">
+
+    <!-- Option Buttons -->
+    <div id="options">
+        <button id="sendOption">Send File</button>
+        <button id="receiveOption">Receive File</button>
+    </div>
+
+    <!-- Sender Interface -->
+    <div id="sendFileContainer">
         <h2>Send File</h2>
         <input type="file" id="fileInput">
         <button id="sendButton">Send File</button>
-        <div id="fileLink" style="display:none;">
+        <div id="fileLink">
             <p>Share this link with the recipient:</p>
             <textarea id="fileUrl" readonly></textarea>
         </div>
     </div>
 
-    <!-- Receiver interface -->
-    <div id="receiverInterface" style="display:none;">
+    <!-- Receiver Interface -->
+    <div id="receiveFileContainer">
         <h2>Receive File</h2>
-        <label for="senderPeerId">Sender's Peer ID:</label>
-        <input type="text" id="senderPeerId">
+        <input type="text" id="fileLinkInput" placeholder="Paste file link here">
         <button id="receiveButton">Receive File</button>
     </div>
 
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
