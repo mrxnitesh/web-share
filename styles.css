@@ -37,7 +37,7 @@ button {
     transition: background-color 0.3s, box-shadow 0.3s;
     margin: 10px 10px;
     border-radius: 5px;
-    width: 200px;
+    width: 150px;
 }
 
 button:hover {
@@ -54,7 +54,7 @@ button:hover {
 
 
 #fileUrl{
-    width: 400px;
+    width: 300px;
 }
 
 
